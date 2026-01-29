@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "n8n-mcp": {
+      "command": "npx",
+      "args": ["-y", "n8n-mcp"],
+      "env": {
+        "N8N_API_URL": "https://petriclucas.app.n8n.cloud",
+        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ZjRiYzBlNC02MzFlLTQ5MjctOTNmNi1hMjQ4NGQ5MGFkMjgiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY5NzA4NDMzfQ.7uHqKqhk_f6z10vtEYHWcyGIuBwe-fnPyTbU3xe90Pw"
+      }
+    }
+  }
+}

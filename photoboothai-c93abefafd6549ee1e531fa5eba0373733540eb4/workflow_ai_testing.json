@@ -1,0 +1,171 @@
+{
+  "name": "AI Testing - DALL-E Image Edit",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-testing",
+        "responseMode": "responseNode",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Upload Image",
+              "fieldType": "file",
+              "requiredField": true,
+              "acceptFileTypes": ".png",
+              "multipleFiles": false
+            },
+            {
+              "fieldLabel": "Filter Type",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  { "option": "cartoon" },
+                  { "option": "oil_painting" },
+                  { "option": "anime" },
+                  { "option": "vintage" },
+                  { "option": "neon" },
+                  { "option": "watercolor" },
+                  { "option": "sketch" },
+                  { "option": "pop_art" }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Processing your image..."
+            }
+          }
+        }
+      },
+      "id": "form-trigger-node",
+      "name": "Form - Upload Image",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [0, 0],
+      "webhookId": "ai-testing-form"
+    },
+    {
+      "parameters": {
+        "operation": "resize",
+        "width": 1024,
+        "height": 1024,
+        "resizeOption": "ignoreAspectRatio",
+        "dataPropertyName": "Upload_Image",
+        "options": {
+          "format": "png"
+        }
+      },
+      "id": "resize-image",
+      "name": "Edit Image - Resize to 1024x1024",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const filterStyles = {\n  'cartoon': 'Transform this image into a vibrant cartoon style with bold outlines, bright colors, and smooth cel-shading like a Disney or Pixar animation. Keep the same composition, people, and objects.',\n  'oil_painting': 'Transform this image into a classic oil painting with visible brushstrokes, rich textures, and deep colors in the style of Renaissance masters. Keep the same composition, people, and objects.',\n  'anime': 'Transform this image into Japanese anime style with large expressive eyes, clean lines, and vibrant colors. Keep the same composition, people, and objects.',\n  'vintage': 'Transform this image into a vintage 1970s photograph with warm sepia tones, soft film grain, light leaks, and slight vignetting. Keep the same composition, people, and objects.',\n  'neon': 'Transform this image into cyberpunk neon style with glowing neon edges, dark background, and vibrant pink/blue/purple color scheme. Keep the same composition, people, and objects.',\n  'watercolor': 'Transform this image into a soft watercolor painting with flowing colors, gentle washes, and delicate brush effects. Keep the same composition, people, and objects.',\n  'sketch': 'Transform this image into a detailed pencil sketch with professional shading, hatching, and fine line work. Keep the same composition, people, and objects.',\n  'pop_art': 'Transform this image into Andy Warhol pop art style with bold primary colors, halftone dots, and high contrast. Keep the same composition, people, and objects.'\n};\n\nconst formData = $('Form - Upload Image').item.json;\nconst filterName = formData['Filter Type'].toLowerCase();\nconst stylePrompt = filterStyles[filterName];\n\nif (!stylePrompt) {\n  throw new Error('Invalid filter: ' + filterName);\n}\n\nreturn {\n  json: {\n    filter: filterName,\n    stylePrompt: stylePrompt\n  },\n  binary: $input.item.binary\n};"
+      },
+      "id": "code-map-filter",
+      "name": "Code - Map Filter to Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/edits",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "dall-e-2"
+            },
+            {
+              "name": "prompt",
+              "value": "={{ $json.stylePrompt }}"
+            },
+            {
+              "name": "size",
+              "value": "1024x1024"
+            },
+            {
+              "name": "n",
+              "value": "1"
+            },
+            {
+              "name": "image",
+              "parameterType": "formBinaryData",
+              "inputDataFieldName": "Upload_Image"
+            }
+          ]
+        },
+        "options": { "timeout": 120000 }
+      },
+      "id": "dalle-edit-node",
+      "name": "HTTP - DALL-E 2 Image Edit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [672, 0],
+      "credentials": { "openAiApi": { "id": "sjJW6eWmwmXbyAcI", "name": "OpenAi account" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const openaiResponse = $json;\nconst prevData = $('Code - Map Filter to Prompt').item.json;\n\nlet imageUrl = '';\nlet imageB64 = '';\n\nif (openaiResponse.data && openaiResponse.data[0]) {\n  if (openaiResponse.data[0].url) {\n    imageUrl = openaiResponse.data[0].url;\n  }\n  if (openaiResponse.data[0].b64_json) {\n    imageB64 = openaiResponse.data[0].b64_json;\n  }\n} else {\n  throw new Error('Unexpected OpenAI response: ' + JSON.stringify(openaiResponse));\n}\n\nreturn {\n  json: {\n    success: true,\n    filter_applied: prevData.filter,\n    image_url: imageUrl,\n    image_base64: imageB64 ? 'data:image/png;base64,' + imageB64 : null,\n    raw_response: openaiResponse\n  }\n};"
+      },
+      "id": "code-process-response",
+      "name": "Code - Process Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [896, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      },
+      "id": "respond-success",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 0]
+    }
+  ],
+  "connections": {
+    "Form - Upload Image": {
+      "main": [[{ "node": "Edit Image - Resize to 1024x1024", "type": "main", "index": 0 }]]
+    },
+    "Edit Image - Resize to 1024x1024": {
+      "main": [[{ "node": "Code - Map Filter to Prompt", "type": "main", "index": 0 }]]
+    },
+    "Code - Map Filter to Prompt": {
+      "main": [[{ "node": "HTTP - DALL-E 2 Image Edit", "type": "main", "index": 0 }]]
+    },
+    "HTTP - DALL-E 2 Image Edit": {
+      "main": [[{ "node": "Code - Process Response", "type": "main", "index": 0 }]]
+    },
+    "Code - Process Response": {
+      "main": [[{ "node": "Respond - Success", "type": "main", "index": 0 }]]
+    }
+  }
+}

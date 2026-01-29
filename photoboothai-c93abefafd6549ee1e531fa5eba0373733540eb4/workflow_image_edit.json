@@ -1,0 +1,230 @@
+{
+  "name": "[Photo Booth] - AI Image Filter Processor",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "photo-booth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a51059df-9e42-4be6-bd53-b0d07edde870",
+      "name": "Webhook - Receive Photo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "af3eba6a-bc2c-4ebb-8fc1-5bb2994eabb3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condition-image",
+              "leftValue": "={{ $json.body.image }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            },
+            {
+              "id": "condition-filter",
+              "leftValue": "={{ $json.body.filter }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9c3c8690-0ee2-438e-a148-1280689b98a4",
+      "name": "IF - Validate Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [256, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"error\": \"Invalid request: missing image or filter\",\n  \"code\": \"INVALID_INPUT\"\n}",
+        "options": { "responseCode": 400 }
+      },
+      "id": "3f3ec186-bc21-44d0-b171-da72fffe2195",
+      "name": "Respond - Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [480, 176]
+    },
+    {
+      "parameters": {
+        "jsCode": "function generateUUID() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    var r = Math.random() * 16 | 0;\n    var v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst filterStyles = {\n  'cartoon': 'Transform this image into a vibrant cartoon style with bold outlines, bright colors, and smooth cel-shading like a Disney or Pixar animation. Keep the same composition, people, and objects.',\n  'oil_painting': 'Transform this image into a classic oil painting with visible brushstrokes, rich textures, and deep colors in the style of Renaissance masters. Keep the same composition, people, and objects.',\n  'anime': 'Transform this image into Japanese anime style with large expressive eyes, clean lines, and vibrant colors. Keep the same composition, people, and objects.',\n  'vintage': 'Transform this image into a vintage 1970s photograph with warm sepia tones, soft film grain, light leaks, and slight vignetting. Keep the same composition, people, and objects.',\n  'neon': 'Transform this image into cyberpunk neon style with glowing neon edges, dark background, and vibrant pink/blue/purple color scheme. Keep the same composition, people, and objects.',\n  'watercolor': 'Transform this image into a soft watercolor painting with flowing colors, gentle washes, and delicate brush effects. Keep the same composition, people, and objects.',\n  'sketch': 'Transform this image into a detailed pencil sketch with professional shading, hatching, and fine line work. Keep the same composition, people, and objects.',\n  'pop_art': 'Transform this image into Andy Warhol pop art style with bold primary colors, halftone dots, and high contrast. Keep the same composition, people, and objects.'\n};\n\nconst filterName = $json.body.filter.toLowerCase();\nconst stylePrompt = filterStyles[filterName];\n\nif (!stylePrompt) {\n  throw new Error('Invalid filter: ' + filterName);\n}\n\nlet imageData = $json.body.image;\n// Remove data URL prefix to get raw base64\nif (imageData.startsWith('data:')) {\n  imageData = imageData.split(',')[1];\n}\n\n// Convert base64 to binary buffer for the image\nconst imageBuffer = Buffer.from(imageData, 'base64');\n\nconst uuid = generateUUID();\nconst filename = uuid + '.png';\n\nreturn {\n  json: {\n    filter: filterName,\n    stylePrompt: stylePrompt,\n    filename: filename,\n    uuid: uuid,\n    timestamp: new Date().toISOString(),\n    session_id: $json.body.session_id || null\n  },\n  binary: {\n    image: await this.helpers.prepareBinaryData(imageBuffer, 'input.png', 'image/png')\n  }\n};"
+      },
+      "id": "a2b01a96-b3f9-4948-9067-d61a83e2c9f7",
+      "name": "Code - Map Filter to Style",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/edits",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-image-1"
+            },
+            {
+              "name": "prompt",
+              "value": "={{ $json.stylePrompt }}"
+            },
+            {
+              "name": "size",
+              "value": "1024x1024"
+            },
+            {
+              "name": "quality",
+              "value": "low"
+            },
+            {
+              "name": "image[]",
+              "parameterType": "formBinaryData",
+              "inputDataFieldName": "image"
+            }
+          ]
+        },
+        "options": { "timeout": 120000 }
+      },
+      "id": "gpt-image-node",
+      "name": "HTTP - GPT Image Edit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [704, 0],
+      "credentials": { "openAiApi": { "id": "sjJW6eWmwmXbyAcI", "name": "OpenAi account" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const openaiResponse = $json;\nlet generatedImageB64;\n\nif (openaiResponse.data && openaiResponse.data[0]) {\n  generatedImageB64 = openaiResponse.data[0].b64_json;\n} else {\n  throw new Error('Unexpected OpenAI response format: ' + JSON.stringify(openaiResponse));\n}\n\nconst prevData = $('Code - Map Filter to Style').item.json;\n\nconst binaryData = Buffer.from(generatedImageB64, 'base64');\n\nreturn {\n  json: {\n    filename: prevData.filename,\n    uuid: prevData.uuid,\n    filter: prevData.filter,\n    timestamp: prevData.timestamp,\n    session_id: prevData.session_id\n  },\n  binary: {\n    data: await this.helpers.prepareBinaryData(binaryData, prevData.filename, 'image/png')\n  }\n};"
+      },
+      "id": "3b362e0a-49e4-475a-ac85-230edbb16d54",
+      "name": "Code - Extract Generated Image",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [928, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "photoaibooth",
+        "fileName": "={{ $json.filename }}",
+        "binaryPropertyName": "data",
+        "additionalFields": {
+          "acl": "public-read",
+          "contentType": "image/png"
+        }
+      },
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [1152, 0],
+      "id": "065b8786-27f1-4ffa-98d4-8d1faad62b89",
+      "name": "Upload a file",
+      "credentials": { "s3": { "id": "LFq1djf3MFT1jL67", "name": "S3 account 2" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const prevData = $('Code - Map Filter to Style').item.json;\n\nconst filename = prevData.filename;\nconst expiresIn = 1200;\n\nconst downloadUrl = 'https://pub-81c17259d0024b8f8f925552b562c490.r2.dev/' + filename;\n\nreturn {\n  json: {\n    downloadUrl: downloadUrl,\n    filename: filename,\n    uuid: prevData.uuid,\n    filter: prevData.filter,\n    expiresIn: expiresIn,\n    expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),\n    timestamp: prevData.timestamp,\n    session_id: prevData.session_id\n  }\n};"
+      },
+      "id": "5403bd51-0463-4b89-9da9-368833ad39c9",
+      "name": "Code - Generate Signed URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1376, 0]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.qrserver.com/v1/create-qr-code/?size=512x512&format=png&data={{ encodeURIComponent($json.downloadUrl) }}",
+        "options": { "response": { "response": { "responseFormat": "file" } } }
+      },
+      "id": "58beb795-caae-4c14-80c1-9d472e38ee6a",
+      "name": "HTTP - Generate QR Code",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1600, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const signedUrlData = $('Code - Generate Signed URL').item.json;\n\nlet qrBase64 = '';\nconst binaryData = $input.item.binary;\nif (binaryData && binaryData.data) {\n  const buffer = await this.helpers.getBinaryDataBuffer(0, 'data');\n  qrBase64 = buffer.toString('base64');\n}\n\nreturn {\n  json: {\n    success: true,\n    qr_code: qrBase64 ? 'data:image/png;base64,' + qrBase64 : null,\n    download_url: signedUrlData.downloadUrl,\n    filter_applied: signedUrlData.filter,\n    expires_in: signedUrlData.expiresIn,\n    expires_at: signedUrlData.expiresAt,\n    session_id: signedUrlData.session_id\n  }\n};"
+      },
+      "id": "364fec3b-17dd-4139-8358-83023b30f360",
+      "name": "Code - Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1824, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Cache-Control", "value": "no-store" }
+            ]
+          }
+        }
+      },
+      "id": "a8e10ecf-b5a7-4cc8-b53b-b8efc3c05ec9",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2048, 0]
+    }
+  ],
+  "connections": {
+    "Webhook - Receive Photo": {
+      "main": [[{ "node": "IF - Validate Input", "type": "main", "index": 0 }]]
+    },
+    "IF - Validate Input": {
+      "main": [
+        [{ "node": "Code - Map Filter to Style", "type": "main", "index": 0 }],
+        [{ "node": "Respond - Validation Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code - Map Filter to Style": {
+      "main": [[{ "node": "HTTP - GPT Image Edit", "type": "main", "index": 0 }]]
+    },
+    "HTTP - GPT Image Edit": {
+      "main": [[{ "node": "Code - Extract Generated Image", "type": "main", "index": 0 }]]
+    },
+    "Code - Extract Generated Image": {
+      "main": [[{ "node": "Upload a file", "type": "main", "index": 0 }]]
+    },
+    "Upload a file": {
+      "main": [[{ "node": "Code - Generate Signed URL", "type": "main", "index": 0 }]]
+    },
+    "Code - Generate Signed URL": {
+      "main": [[{ "node": "HTTP - Generate QR Code", "type": "main", "index": 0 }]]
+    },
+    "HTTP - Generate QR Code": {
+      "main": [[{ "node": "Code - Prepare Response", "type": "main", "index": 0 }]]
+    },
+    "Code - Prepare Response": {
+      "main": [[{ "node": "Respond - Success", "type": "main", "index": 0 }]]
+    }
+  }
+}

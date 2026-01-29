@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Photo AI Booth</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Screen 1: Welcome/Landing -->
+        <section id="screen-welcome" class="screen active">
+            <div class="screen-content">
+                <div class="logo-container">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="12" cy="12" r="3"/>
+                            <circle cx="18" cy="6" r="1" fill="currentColor"/>
+                        </svg>
+                    </div>
+                    <h1 class="app-title">Photo AI Booth</h1>
+                </div>
+
+                <p class="app-subtitle">Choose your style, then capture your moment</p>
+
+                <div class="welcome-buttons">
+                    <button id="btn-get-started" class="btn btn-primary btn-large">
+                        Get Started
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <input type="file" id="file-input" accept="image/*" hidden>
+
+                <div class="instructions">
+                    <p>Take a photo or upload an image to apply amazing AI filters</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Screen: Filter Selection (NEW - Before photo capture) -->
+        <section id="screen-filter-selection" class="screen">
+            <div class="screen-content">
+                <div class="filter-selection-header">
+                    <h2 class="section-title">Choose Your Filter</h2>
+                    <p class="filter-subtitle">Swipe to explore magical transformations</p>
+                </div>
+
+                <div class="filter-carousel-wrapper">
+                    <div class="filter-carousel-fade filter-carousel-fade-left"></div>
+                    <div class="filter-carousel-container">
+                        <div class="filter-carousel" id="filter-carousel" role="listbox" aria-label="Filter selection">
+                            <!-- Filters populated by JavaScript -->
+                        </div>
+                    </div>
+                    <div class="filter-carousel-fade filter-carousel-fade-right"></div>
+                </div>
+
+                <div class="filter-name-display" id="current-filter-name">
+                    Ocean
+                </div>
+
+                <div class="filter-selection-actions">
+                    <button id="btn-continue-to-capture" class="btn btn-primary btn-large" disabled>
+                        Continue
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Screen: Capture Method Choice (NEW - After filter selection) -->
+        <section id="screen-capture-choice" class="screen">
+            <div class="screen-content centered">
+                <div class="selected-filter-badge">
+                    <span class="badge-icon">✨</span>
+                    <span id="selected-filter-badge-text">Ocean Filter</span>
+                </div>
+
+                <h2 class="section-title">How would you like to capture?</h2>
+
+                <div class="capture-choice-buttons">
+                    <button id="btn-choice-camera" class="btn btn-primary btn-large">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                        Take Photo
+                    </button>
+
+                    <button id="btn-choice-upload" class="btn btn-secondary btn-large">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        Upload Photo
+                    </button>
+                </div>
+
+                <button id="btn-back-to-filters" class="btn btn-ghost">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Change Filter
+                </button>
+            </div>
+        </section>
+
+        <!-- Screen 2: Camera/Capture -->
+        <section id="screen-camera" class="screen">
+            <div class="camera-container">
+                <video id="camera-preview" autoplay playsinline muted></video>
+                <canvas id="camera-canvas" hidden></canvas>
+
+                <div id="countdown-overlay" class="countdown-overlay hidden">
+                    <span id="countdown-number">3</span>
+                </div>
+
+                <div class="camera-controls-top">
+                    <button id="btn-camera-back" class="btn btn-icon-only btn-ghost">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+
+                    <button id="btn-camera-flip" class="btn btn-icon-only btn-ghost">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 3h5v5M8 3H3v5M21 12a9 9 0 01-9 9M3 12a9 9 0 019-9"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="camera-controls-bottom">
+                    <button id="btn-capture" class="btn-capture">
+                        <span class="capture-ring"></span>
+                        <span class="capture-center"></span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Screen 3: Preview & Filter Selection -->
+        <section id="screen-filters" class="screen">
+            <div class="screen-content">
+                <div class="preview-container">
+                    <img id="photo-preview" src="" alt="Your photo">
+                </div>
+
+                <h2 class="section-title">Choose a Filter</h2>
+
+                <div class="filters-scroll-container">
+                    <div class="filters-grid" id="filters-grid" role="listbox" aria-label="Photo filter selection">
+                        <!-- Filters will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <div class="filter-actions">
+                    <button id="btn-retake" class="btn btn-secondary">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 4v6h6M23 20v-6h-6"/>
+                            <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/>
+                        </svg>
+                        Retake
+                    </button>
+
+                    <button id="btn-apply-filter" class="btn btn-primary" disabled>
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        Apply Filter
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Screen 4: Processing -->
+        <section id="screen-processing" class="screen">
+            <div class="screen-content centered">
+                <div class="processing-animation">
+                    <div class="spinner"></div>
+                    <div class="processing-rings">
+                        <div class="ring ring-1"></div>
+                        <div class="ring ring-2"></div>
+                        <div class="ring ring-3"></div>
+                    </div>
+                </div>
+
+                <h2 class="processing-title">Creating Your Masterpiece</h2>
+                <p class="processing-subtitle" id="processing-status">Applying AI magic...</p>
+            </div>
+        </section>
+
+        <!-- Screen 5: Result -->
+        <section id="screen-result" class="screen">
+            <div class="screen-content">
+                <div class="result-header">
+                    <h2>Your Photo is Ready!</h2>
+                    <p>Scan the QR code to download</p>
+                </div>
+
+                <div class="result-images-container">
+                    <div class="preview-image-container">
+                        <img id="preview-image" src="" alt="Your filtered photo">
+                        <p class="image-label">Your Photo</p>
+                    </div>
+                    <div class="qr-container">
+                        <img id="qr-code" src="" alt="QR Code">
+                        <p class="image-label">Scan to Download</p>
+                    </div>
+                </div>
+
+                <div class="expiry-timer">
+                    <svg class="timer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span>Expires in <span id="expiry-time">20:00</span></span>
+                </div>
+
+                <div class="result-preview">
+                    <p class="preview-label">Filter Applied: <span id="filter-applied">-</span></p>
+                </div>
+
+                <button id="btn-new-photo" class="btn btn-primary btn-large">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                    Take Another Photo
+                </button>
+            </div>
+        </section>
+
+        <!-- Screen: Error -->
+        <section id="screen-error" class="screen">
+            <div class="screen-content centered">
+                <div class="error-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+
+                <h2 class="error-title">Oops! Something went wrong</h2>
+                <p class="error-message" id="error-message">An unexpected error occurred. Please try again.</p>
+
+                <button id="btn-try-again" class="btn btn-primary btn-large">
+                    Try Again
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
