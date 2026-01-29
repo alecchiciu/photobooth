@@ -66,7 +66,11 @@ const App = (function() {
             retake: document.getElementById('btn-retake'),
             applyFilter: document.getElementById('btn-apply-filter'),
             newPhoto: document.getElementById('btn-new-photo'),
-            tryAgain: document.getElementById('btn-try-again')
+            tryAgain: document.getElementById('btn-try-again'),
+
+            // Result screen buttons
+            showPreview: document.getElementById('btn-show-preview'),
+            showQR: document.getElementById('btn-show-qr')
         };
 
         // Display elements
@@ -86,7 +90,11 @@ const App = (function() {
             expiryTime: document.getElementById('expiry-time'),
             filterApplied: document.getElementById('filter-applied'),
             errorMessage: document.getElementById('error-message'),
-            fileInput: document.getElementById('file-input')
+            fileInput: document.getElementById('file-input'),
+
+            // Containers for preview image and QR code
+            previewContainer: document.getElementById('preview-container'),
+            qrContainer: document.getElementById('qr-container')
         };
     }
 
@@ -127,6 +135,23 @@ const App = (function() {
         if (elements.displays.filterCarousel) {
             elements.displays.filterCarousel.addEventListener('scroll', handleCarouselScroll);
         }
+
+        // Add event listeners for result screen buttons
+        elements.buttons.showPreview.addEventListener('click', () => {
+            elements.displays.previewContainer.style.display = 'block';
+            elements.displays.qrContainer.style.display = 'none';
+
+            elements.buttons.showPreview.classList.add('selected');
+            elements.buttons.showQR.classList.remove('selected');
+        });
+
+        elements.buttons.showQR.addEventListener('click', () => {
+            elements.displays.previewContainer.style.display = 'none';
+            elements.displays.qrContainer.style.display = 'block';
+
+            elements.buttons.showQR.classList.add('selected');
+            elements.buttons.showPreview.classList.remove('selected');
+        });
     }
 
     /**

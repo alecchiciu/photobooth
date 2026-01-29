@@ -207,15 +207,20 @@
             <div class="screen-content">
                 <div class="result-header">
                     <h2>Your Photo is Ready!</h2>
-                    <p>Scan the QR code to download</p>
+                    <p>Choose an option below:</p>
+                </div>
+
+                <div class="result-buttons">
+                    <button id="btn-show-preview" class="btn btn-primary">Preview</button>
+                    <button id="btn-show-qr" class="btn btn-secondary">QR Code</button>
                 </div>
 
                 <div class="result-images-container">
-                    <div class="preview-image-container">
+                    <div class="preview-image-container" id="preview-container">
                         <img id="preview-image" src="" alt="Your filtered photo">
                         <p class="image-label">Your Photo</p>
                     </div>
-                    <div class="qr-container">
+                    <div class="qr-container" id="qr-container" style="display: none;">
                         <img id="qr-code" src="" alt="QR Code">
                         <p class="image-label">Scan to Download</p>
                     </div>
